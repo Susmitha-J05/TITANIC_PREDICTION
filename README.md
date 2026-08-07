@@ -1,179 +1,330 @@
-# Titanic Survival Prediction – End-to-End ML Project
+# 🚢 Titanic Survival Prediction using Machine Learning
 
-Predicting whether a Titanic passenger survived, using a full machine learning
-workflow: data cleaning, feature engineering, a scikit-learn preprocessing +
-modelling pipeline, comparison of 4 classifiers, hyperparameter tuning, and a
-Streamlit app for live predictions.
+This project presents an end-to-end machine learning solution for predicting
+whether a passenger survived the Titanic disaster. It covers the complete ML
+workflow including data preprocessing, feature engineering, model training,
+hyperparameter tuning, evaluation, and deployment through a Streamlit web
+application.
 
-## Dataset
+---
 
-Titanic passenger dataset (891 rows, 12 columns) — a classic real-world
-dataset with:
+# 📁 Project Structure
 
-- **Missing values**: `Age` (177 missing), `Cabin` (687 missing), `Embarked` (2 missing)
-- **Categorical features**: `Sex`, `Embarked`, `Pclass`, `Ticket`, `Cabin`
-- **Numerical features**: `Age`, `Fare`, `SibSp`, `Parch`
-- **Target**: `Survived` (0 = did not survive, 1 = survived), 549 vs 342 — moderately imbalanced
-
-Source file used: `data/titanic.csv`.
-
-## Project Structure
-
-```
+```text
 titanic_project/
+│
 ├── data/
-│   └── titanic.csv                  # Raw dataset
+│   └── titanic.csv
+│
 ├── notebooks/
-│   └── titanic_end_to_end.ipynb     # Full EDA + training walkthrough (executed, with outputs)
+│   └── titanic_end_to_end.ipynb
+│
 ├── src/
-│   ├── data_cleaning.py             # Loading, duplicate removal, feature engineering, outlier capping
-│   └── train_model.py               # Preprocessing pipeline, model training, tuning, saving artifacts
+│   ├── data_cleaning.py
+│   └── train_model.py
+│
 ├── models/
-│   ├── best_pipeline.pkl            # Final tuned sklearn Pipeline (preprocessing + model)
-│   ├── training_report.json         # Metrics for all models + best hyperparameters
-│   └── model_comparison.csv         # Model comparison table
+│   ├── best_pipeline.pkl
+│   ├── training_report.json
+│   └── model_comparison.csv
+│
 ├── app/
-│   └── streamlit_app.py             # Streamlit UI for live predictions + performance dashboard
+│   └── streamlit_app.py
+│
 ├── requirements.txt
 └── README.md
 ```
 
-## Workflow
+---
 
-### 1. Data Cleaning (`src/data_cleaning.py`)
+# 📊 Dataset Overview
 
-- **Duplicates**: checked and removed with `drop_duplicates()` (none found in this dataset,
-  but the step is always run so the pipeline is robust to other data pulls)
-- **Feature engineering**:
-  - `Title` – extracted from the `Name` field (Mr / Mrs / Miss / Master / Rare)
-  - `FamilySize` – `SibSp + Parch + 1`
-  - `IsAlone` – 1 if travelling alone, else 0
-  - `Deck` – first letter of the `Cabin` code (`Unknown` if missing)
-- **Dropped columns**: `PassengerId`, `Name`, `Ticket`, `Cabin` (IDs / free text
-  already captured by the engineered features above)
-- **Outlier treatment**: `Age` and `Fare` capped using the IQR rule
-  (values outside `Q1 − 1.5×IQR` / `Q3 + 1.5×IQR` are clipped, not dropped, so
-  no rows are lost)
+The project uses the classic **Titanic** passenger dataset consisting of
+**891 records** and **12 original features**.
 
-Missing-value imputation, one-hot encoding and feature scaling are **not**
-done in this step. They are handled inside the scikit-learn `Pipeline`
-(next section) so that they are only ever fit on the training data — this
-avoids any leakage from the test set into preprocessing.
+### Target Variable
 
-### 2. Preprocessing Pipeline (`src/train_model.py`)
+- **Survived**
+  - 0 → Passenger did not survive
+  - 1 → Passenger survived
 
-A single `sklearn.pipeline.Pipeline` wraps everything:
+### Important Features
+
+**Numerical Features**
+
+- Age
+- Fare
+- SibSp
+- Parch
+
+**Categorical Features**
+
+- Passenger Class (Pclass)
+- Sex
+- Embarked
+- Ticket
+- Cabin
+
+### Missing Values
+
+The dataset contains several missing values that are handled during
+preprocessing.
+
+| Feature | Missing Values |
+|----------|---------------:|
+| Age | 177 |
+| Cabin | 687 |
+| Embarked | 2 |
+
+---
+
+# ⚙️ Project Workflow
+
+## 1. Data Cleaning
+
+The data preparation stage performs the following operations:
+
+- Removes duplicate records when present
+- Creates additional informative features
+- Handles extreme values using IQR-based outlier capping
+- Removes unnecessary identifier columns
+
+### Feature Engineering
+
+The following new features are generated:
+
+- **Title** extracted from passenger names
+- **FamilySize** calculated from family-related columns
+- **IsAlone** indicating whether a passenger travelled alone
+- **Deck** extracted from the cabin information
+
+The following columns are removed after feature extraction:
+
+- PassengerId
+- Name
+- Ticket
+- Cabin
+
+Outliers in **Age** and **Fare** are clipped using the Interquartile Range
+(IQR) method instead of removing observations.
+
+---
+
+## 2. Data Preprocessing Pipeline
+
+All preprocessing operations are combined into a single
+**scikit-learn Pipeline**, ensuring identical processing during training and
+prediction.
+
+### Numerical Features
+
+- Median value imputation
+- Standard scaling
+
+### Categorical Features
+
+- Most frequent value imputation
+- One-Hot Encoding
+
+### Feature Selection
+
+After preprocessing, the pipeline applies:
+
+- **SelectKBest (ANOVA F-test)**
+
+before training the classifier.
+
+The complete preprocessing and prediction workflow is stored inside
+`best_pipeline.pkl`, allowing the Streamlit application to use exactly the
+same pipeline without additional preprocessing.
+
+---
+
+## 3. Model Development
+
+Four different classification algorithms are trained using the same
+preprocessing pipeline.
+
+- Logistic Regression
+- Random Forest Classifier
+- XGBoost Classifier
+- Support Vector Machine (SVM)
+
+Training performance is measured using:
+
+- Accuracy
+- Precision
+- Recall
+- F1-Score
+- ROC-AUC
+
+---
+
+# 📈 Model Comparison
+
+| Model | Accuracy | Precision | Recall | F1 Score | ROC-AUC |
+|------|:--------:|:---------:|:------:|:--------:|:-------:|
+| Logistic Regression | 0.7821 | 0.7206 | 0.7101 | 0.7153 | 0.8418 |
+| Random Forest | 0.7933 | 0.7424 | 0.7101 | 0.7259 | 0.8182 |
+| XGBoost | 0.7877 | 0.7313 | 0.7101 | 0.7206 | 0.8265 |
+| Support Vector Machine | 0.7933 | 0.8077 | 0.6087 | 0.6942 | 0.8588 |
+
+Among the evaluated models, **Random Forest** produced the highest overall
+F1-score and was selected as the final model for deployment.
+
+A complete comparison report is available in:
 
 ```
-ColumnTransformer
- ├── numeric features   -> SimpleImputer(median) -> StandardScaler
- └── categorical features -> SimpleImputer(most_frequent) -> OneHotEncoder
-        |
-        v
-SelectKBest(f_classif, k=12)   # feature selection
-        |
-        v
-Classifier (LogReg / RandomForest / XGBoost / SVM)
+models/model_comparison.csv
 ```
 
-- **Numeric features**: `Age`, `Fare`, `SibSp`, `Parch`, `FamilySize`, `IsAlone`
-- **Categorical features**: `Pclass`, `Sex`, `Embarked`, `Title`, `Deck`
+---
 
-Because everything lives inside one `Pipeline` object, `pipeline.fit(X_train, y_train)`
-and `pipeline.predict(X_new)` handle the entire preprocessing + inference chain —
-this is the exact same object saved to `models/best_pipeline.pkl` and used by
-the Streamlit app, so there is no risk of train/inference preprocessing mismatch.
+# 🔧 Hyperparameter Optimization
 
-### 3. Model Comparison
+The selected Random Forest model is further optimized using
+**GridSearchCV** with **5-fold cross-validation**.
 
-Four classifiers were trained with identical preprocessing and evaluated with
-5-fold cross-validation (train set) and a held-out 20% test set:
+### Parameters Tuned
 
-| Model               | Accuracy | Precision | Recall | F1 Score | ROC-AUC |
-|----------------------|:--------:|:---------:|:------:|:--------:|:-------:|
-| Logistic Regression   | 0.7821 | 0.7206 | 0.7101 | 0.7153 | 0.8418 |
-| Random Forest          | 0.7933 | 0.7424 | 0.7101 | 0.7259 | 0.8182 |
-| XGBoost                | 0.7877 | 0.7313 | 0.7101 | 0.7206 | 0.8265 |
-| SVM                     | 0.7933 | 0.8077 | 0.6087 | 0.6942 | 0.8588 |
+- Number of trees (`n_estimators`)
+- Maximum tree depth (`max_depth`)
+- Minimum samples required to split
+- Minimum samples required in leaf nodes
 
-(Full table with CV scores and training time is in `models/model_comparison.csv`.)
+### Best Parameters
 
-**Best model (by F1-score): Random Forest**
-
-### 4. Hyperparameter Tuning
-
-`GridSearchCV` (5-fold, scoring = F1) was run over Random Forest's
-`n_estimators`, `max_depth`, `min_samples_split`, and `min_samples_leaf`.
-
-Best parameters found:
-```
-n_estimators: 500
-max_depth: None
-min_samples_split: 5
-min_samples_leaf: 1
+```text
+n_estimators = 500
+max_depth = None
+min_samples_split = 5
+min_samples_leaf = 1
 ```
 
-**Test-set performance after tuning:**
+### Performance Before and After Tuning
 
-| Metric    | Before tuning | After tuning |
-|-----------|:-------------:|:------------:|
-| Accuracy  | 0.7933        | 0.8101       |
-| Precision | 0.7424        | 0.7612       |
-| Recall    | 0.7101        | 0.7391       |
-| F1 Score  | 0.7259        | 0.7500       |
-| ROC-AUC   | 0.8182        | 0.8252       |
+| Metric | Initial Model | Tuned Model |
+|--------|:-------------:|:-----------:|
+| Accuracy | 0.7933 | 0.8101 |
+| Precision | 0.7424 | 0.7612 |
+| Recall | 0.7101 | 0.7391 |
+| F1 Score | 0.7259 | 0.7500 |
+| ROC-AUC | 0.8182 | 0.8252 |
 
-Tuning improved every metric, most notably accuracy (+1.7pp) and F1 (+2.4pp).
+Hyperparameter tuning improved every evaluation metric, with the most notable
+increase observed in F1-score.
 
-### 5. Streamlit App (`app/streamlit_app.py`)
+---
 
-Two tabs:
-- **Predict**: form for passenger class, sex, age, family size, fare, port of
-  embarkation, title, and deck → live survival prediction with probability
-- **Model Performance**: comparison table for all 4 models, tuned metrics,
-  best hyperparameters, and the feature list used
+# 💻 Streamlit Application
 
-## How to Run
+The project includes an interactive web application where users can enter
+passenger information to predict survival probability.
 
-### 1. Install dependencies
+### User Inputs
+
+- Passenger Class
+- Gender
+- Age
+- Number of Siblings/Spouses
+- Number of Parents/Children
+- Fare
+- Port of Embarkation
+- Passenger Title
+- Deck
+
+### Application Features
+
+- Predict passenger survival
+- Display prediction probability
+- View model comparison results
+- Display tuned model metrics
+- Show selected hyperparameters
+
+---
+
+# 🚀 Running the Project
+
+## Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Train the model (regenerates everything in `models/`)
+## Train the Models
+
 ```bash
 python src/train_model.py
 ```
 
-### 3. Explore the notebook
+This command:
+
+- cleans the dataset
+- engineers new features
+- trains all classifiers
+- performs hyperparameter tuning
+- saves the trained pipeline and evaluation reports
+
+## Open the Notebook
+
 ```bash
 jupyter notebook notebooks/titanic_end_to_end.ipynb
 ```
 
-### 4. Launch the Streamlit app
+## Launch the Streamlit Application
+
 ```bash
 streamlit run app/streamlit_app.py
 ```
-Then open the printed local URL (usually `http://localhost:8501`) in your browser.
 
-## Key Design Decisions
+Open the local URL displayed by Streamlit to interact with the prediction
+dashboard.
 
-- **Outlier capping instead of row removal** for `Age`/`Fare`, to avoid losing
-  already-limited training data (only 891 rows total).
-- **Feature engineering from `Name`/`Cabin`** (`Title`, `Deck`) instead of
-  dropping them outright, since they carry real predictive signal (e.g. "Master"
-  title strongly correlates with young boys, higher decks correlate with
-  higher class / survival).
-- **Imputation, encoding and scaling inside the pipeline**, never before the
-  train/test split, to prevent data leakage.
-- **SelectKBest feature selection** inside the pipeline keeps only the most
-  informative encoded features, reducing noise from the one-hot expansion.
-- **F1-score used for model selection/tuning** rather than plain accuracy,
-  since the target classes are imbalanced (61% / 39%).
+---
 
-## Results Summary
+# 📌 Project Highlights
 
-The final tuned Random Forest pipeline achieves **81% accuracy** and **0.75 F1**
-on the held-out test set, with an ROC-AUC of 0.825 — a solid result for this
-well-known benchmark dataset given the relatively small size (891 rows) and
-inherent noise in survival outcomes.
+- Duplicate detection and removal
+- Feature engineering from passenger information
+- IQR-based outlier treatment
+- Unified preprocessing with scikit-learn Pipeline
+- Automatic missing value imputation
+- One-Hot Encoding for categorical variables
+- Feature selection using SelectKBest
+- Comparison of four machine learning classifiers
+- Hyperparameter tuning using GridSearchCV
+- Interactive Streamlit deployment
+
+---
+
+# 📊 Final Results
+
+The optimized **Random Forest Pipeline** achieved the strongest overall
+performance among the evaluated models.
+
+**Final Test Performance**
+
+- Accuracy: **81.01%**
+- Precision: **0.7612**
+- Recall: **0.7391**
+- F1-Score: **0.7500**
+- ROC-AUC: **0.8252**
+
+These results demonstrate that combining feature engineering, pipeline-based
+preprocessing, and hyperparameter optimization produces a reliable survival
+prediction model for the Titanic dataset.
+
+---
+
+# 🛠️ Technologies Used
+
+- Python
+- pandas
+- NumPy
+- scikit-learn
+- XGBoost
+- matplotlib
+- seaborn
+- Streamlit
+- joblib
+- Jupyter Notebook
